@@ -1,0 +1,32 @@
+{
+  "name": "zero-day-server",
+  "version": "1.0.0",
+  "description": "Server code for zer-day Front End",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Inh3ritance/zero-day-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Inh3ritance/zero-day-server/issues"
+  },
+  "homepage": "https://github.com/Inh3ritance/zero-day-server#readme",
+  "dependencies": {
+    "@socket.io/admin-ui": "^0.2.0",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.1.1",
+    "express": "^4.17.2",
+    "helmet": "^5.0.2",
+    "nedb": "git+https://github.com/Inh3ritance/nedb.git",
+    "nodemon": "^2.0.15",
+    "socket.io": "^4.4.1",
+    "uuid": "^8.3.2"
+  }
+}
