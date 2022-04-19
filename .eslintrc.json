@@ -1,0 +1,83 @@
+{
+  "env": {
+    "es2021": true
+  },
+  "parserOptions": {
+    "ecmaFeatures": {
+      "js": true,
+      "jsx": true,
+      "ts": true,
+      "tsx": true
+    },
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "rules": {
+    // ignore no-console rule
+    "no-console": "off",
+    // indentation 2 spaces
+    "indent": [
+      "error",
+      2
+    ],
+    "max-len": [
+      "error",
+      {
+        "code": 130,
+        "ignoreComments": true,
+        "ignoreUrls": true,
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true,
+        "ignoreRegExpLiterals": true
+      }
+    ],
+    "import/no-extraneous-dependencies": "off",
+    "no-plusplus": "off",
+    "no-bitwise": "off",
+    // note you must disable the base rule as it can report incorrect errors
+    "no-unused-vars": "off"
+  },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".ts",
+          ".tsx"
+        ]
+      }
+    }
+  },
+  "ignorePatterns": [
+    "jestSetup.js",
+    "jest.config.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx"],
+
+      "extends": ["plugin:@typescript-eslint/recommended"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": ["./tsconfig.json"] // Specify it only for TypeScript files
+      },
+      "plugins": ["@typescript-eslint"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          {
+            "argsIgnorePattern": "(^_|^_$)",
+            "varsIgnorePattern": "(^_|^_$)",
+            "caughtErrorsIgnorePattern": "(^_|^_$)"
+          }
+        ],
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/ban-types": "off",
+        "@typescript-eslint/no-var-requires": "off",
+        "@typescript-eslint/ban-ts-comment": "off"
+      }
+    }
+  ]
+}

@@ -2,10 +2,13 @@
   "name": "zero-day-server",
   "version": "1.0.0",
   "description": "Server code for zer-day Front End",
-  "main": "index.js",
+  "main": "server.ts",
+  "type": "module",
   "scripts": {
-    "start": "nodemon server",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon --esm ./server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
+    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx . --fix"
   },
   "repository": {
     "type": "git",
@@ -27,6 +30,21 @@
     "nedb": "git+https://github.com/Inh3ritance/nedb.git",
     "nodemon": "^2.0.15",
     "socket.io": "^4.4.1",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "typescript": "^4.5.5",
+    "ts-node": "^10.7.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.10.1",
+    "@typescript-eslint/parser": "^5.10.1",
+    "@types/node": "^17.0.13",
+    "@types/socket.io": "^3.0.2",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/helmet": "^4.0.0",
+    "@types/uuid": "^8.3.4",
+    "@types/crypto-js": "^4.1.1",
+    "@types/nedb": "^1.8.12",
+    "eslint": "^8.13.0"
   }
 }
