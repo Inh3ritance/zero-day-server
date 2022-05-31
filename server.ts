@@ -7,7 +7,10 @@ import helmet from 'helmet';
 import http from 'http';
 import cors from 'cors';
 import Datastore from 'nedb';
-import { Server } from "socket.io";
+import { Server } from 'socket.io';
+import luxon from 'luxon';
+
+const DateTime = luxon.DateTime;
 
 const app = express();
 const server = http.createServer(app);
@@ -109,10 +112,8 @@ io.on('connection', (socket) => {
 
   // not encrypted, on public chat
   socket.on('public-send', (data) => {
-    const year = new Date().getUTCFullYear();
-    const month = new Date().getUTCMonth() + 1;
-    const day = new Date().getUTCDate();
-    data['date'] = `${month}/${day}/${year} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()} UTC`;
+    const date = DateTime.local().toFormat('M/dd/yyyy h:mm:ss ZZZZ'); // e.g. '5/30/2022 8:01:09 PDT'
+    data['date'] = date;
     io.sockets.emit('public-retrieve', data);
   });
 
