@@ -3,8 +3,8 @@
     "paths": {
       "@/*": ["./src/*"],
     },
-    "target": "es2016",
-    "module": "esnext",
+    "target": "esnext",
+    "module": "commonjs",
     "typeRoots": [
       "./src/@types",
       "./node_modules/@types"
@@ -12,7 +12,6 @@
     "types": [
       "node",
       "jest",
-      "@testing-library/jest-dom"
     ],
     "resolveJsonModule": true,
     "allowJs": true,
@@ -21,8 +20,6 @@
     "strict": true,
     "skipLibCheck": true,
     "lib": [
-      "dom",
-      "dom.iterable",
       "esnext",
       "es2015",
       "es2016",
@@ -34,14 +31,16 @@
     "isolatedModules": true,
     "noEmit": true
   },
+  "ts-node": {
+    "esm": true
+  },
   "include": [
-    "./"
+    "src",
   ],
   "exclude": [
     "node_modules",
     "**/node_modules/*",
     "dist",
-    "electron",
     "functions",
   ]
 }
