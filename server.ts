@@ -20,7 +20,7 @@ const days = 1000 * 60 * 60 * 24 * 60; // 60 days in milliseconds
 
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: "*",
   }
 });
 
@@ -33,6 +33,7 @@ io.use((socket: Socket, next: (err?: ExtendedError) => void) => {
 instrument(io, {
   auth: false,
   readonly: true,
+  namespaceName: '/',
 });
 
 app.use(helmet());
