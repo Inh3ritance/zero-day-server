@@ -2,7 +2,7 @@ import { ExtendedError } from 'socket.io/dist/namespace';
 import { Socket } from 'socket.io/dist/socket';
 import express, { Response, Request } from 'express';
 import { instrument } from '@socket.io/admin-ui';
-import cryptojs from 'crypto-js';
+import argon2 from 'argon2';
 import helmet from 'helmet';
 import http from 'http';
 import cors from 'cors';
@@ -14,7 +14,6 @@ import { SOCKET_EVENTS } from './constants';
 const app = express();
 const server = http.createServer(app);
 const db = new Datastore();
-const { SHA512: sha512 } = cryptojs;
 
 /// create cron job everyday(1 day) for inactive 60 day deletion
 const days = 1000 * 60 * 60 * 24 * 60; // 60 days in milliseconds
@@ -51,14 +50,14 @@ app.get('/users', (_: Request, res: Response) => {
   });
 });
 
-app.post('/createUser', (req: Request, res: Response) => { // make this more secure
-  db.findOne({ _id: req.body.user }, (err, doc) => {
+app.post('/createUser', async (req: Request, res: Response) => { // make this more secure
+  db.findOne({ _id: req.body.user }, async (err, doc) => {
     if (err) console.error(err);
     if (doc === null) {
       db.insert({
         user: req.body.user,
         exp: new Date().getTime() + days,
-        pass: sha512(req.body.pass).toString(), // argon
+        pass: await argon2.hash(req.body.pass),
         socket: null,
       }, (error, _) => {
         if (error) console.error(error);
@@ -72,16 +71,20 @@ app.post('/createUser', (req: Request, res: Response) => { // make this more sec
 
 io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
   socket.on(SOCKET_EVENTS.LOGIN, (data) => { // improve
-    db.findOne({ user: data.user }, (err, doc) => {
+    db.findOne({ user: data.user }, async (err, doc) => {
       if (err) console.error(err);
-      if (sha512(data?.pass).toString() === doc?.pass && doc?.socket) { // || cookie, jwt
-        io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: doc.socket });
-        socket.disconnect();
-      } else if (sha512(data?.pass).toString() === doc?.pass) {
-        db.update({ user: data.user }, { $set: { socket: socket.id, exp: new Date().getTime() + days } }, {}, (error, _) => {
-          if (error) console.error(error);
-          io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: socket.id });
-        });
+      if (await argon2.verify(doc?.pass, data?.pass)) {
+        console.log(doc);
+        if (doc?.socket) {
+          io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: doc.socket });
+        } else {
+          // Set a socket to a user if none exists in the DB for that user
+          // TODO - Fix socket not getting set correctly in update
+          db.update({ user: data.user }, { $set: { socket: socket.id, exp: new Date().getTime() + days } }, {}, (error, _) => {
+            if (error) console.error(error);
+            io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: socket.id });
+          });
+        }
       } else {
         socket.disconnect();
       }
