@@ -6,20 +6,15 @@ import argon2 from 'argon2';
 import helmet from 'helmet';
 import http from 'http';
 import cors from 'cors';
-import Datastore from 'nedb';
 import { PrismaClient } from '@prisma/client'
 import { Server } from 'socket.io';
 import { DateTime } from 'luxon';
 import { SOCKET_EVENTS } from './constants';
 
-
-const PORT = 9000;
-
-const prisma = new PrismaClient()
-
 const app = express();
 const server = http.createServer(app);
-const db = new Datastore();
+const prisma = new PrismaClient();
+const PORT = 9000;
 
 /// create cron job everyday(1 day) for inactive 60 day deletion
 const days = 1000 * 60 * 60 * 24 * 60; // 60 days in milliseconds
@@ -49,13 +44,7 @@ app.use(express.json());
 
 app.get('/', (_: Request, res: Response) => res.send('Server running...'));
 
-app.get('/users', async (_: Request, res: Response) => {
-  const users = prisma.user.findMany();
-  res.send(users);
-});
-
-app.post('/createUser', async (req: Request, res: Response) => { // make this more secure
-
+app.post('/createUser', async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findFirst({
       where: {
@@ -63,37 +52,36 @@ app.post('/createUser', async (req: Request, res: Response) => { // make this mo
       },
     });
     if (!user) {
-      prisma.user.create({
+      await prisma.user.create({
         data: {
           user: req.body.user,
           exp: new Date().getTime() + days,
           pass: await argon2.hash(req.body.pass),
-          socket: null,
         }
-      })
+      });
     }
     res.sendStatus(200);
   } catch (e) {
     console.log(e);
     res.sendStatus(500);
   }
-
 });
 
 io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
-  socket.on(SOCKET_EVENTS.LOGIN, async (data) => { // improve
+
+  // move this to io.use()
+  socket.on(SOCKET_EVENTS.LOGIN, async (data) => {
     const doc = await prisma.user.findFirst({
       where: {
         user: data.user,
       },
     });
-    
+
     if (await argon2.verify(doc?.pass || '', data?.pass)) {
       if (doc?.socket) {
         io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: doc.socket });
+        socket.disconnect();
       } else {
-        // Set a socket to a user if none exists in the DB for that user
-        // TODO - Fix socket not getting set correctly in update
         await prisma.user.updateMany({
           where: {
             user: data.user,
@@ -116,7 +104,7 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
         socket: socket.id,
       },
       data: {
-        socket: socket.id,
+        socket: null,
         exp: new Date().getTime() + days
       }
     });
@@ -166,20 +154,15 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
   });
 });
 
-async function startServer() {
+const startServer = async () => {
   await prisma.$connect();
-
   server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
 }
 
-startServer()
-  .catch((e) => {
-    console.error(e)
-    throw e
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+startServer().catch((e) => {
+  console.error(e);
+  throw e;
+}).finally(async () => {
+  await prisma.$disconnect();
+});
 
-export {};

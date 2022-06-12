@@ -29,7 +29,6 @@
     "express": "^4.17.2",
     "helmet": "^5.0.2",
     "luxon": "^2.4.0",
-    "nedb": "git+https://github.com/Inh3ritance/nedb.git",
     "nodemon": "^2.0.15",
     "prisma": "^3.15.1",
     "socket.io": "^4.4.1",
