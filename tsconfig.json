@@ -29,7 +29,8 @@
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "sourceMap": true,
   },
   "ts-node": {
     "esm": true

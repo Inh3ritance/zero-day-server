@@ -6,14 +6,15 @@ import argon2 from 'argon2';
 import helmet from 'helmet';
 import http from 'http';
 import cors from 'cors';
-import Datastore from 'nedb';
+import { PrismaClient } from '@prisma/client';
 import { Server } from 'socket.io';
 import { DateTime } from 'luxon';
 import { SOCKET_EVENTS } from './constants';
 
 const app = express();
 const server = http.createServer(app);
-const db = new Datastore();
+const prisma = new PrismaClient();
+const PORT = 9000;
 
 /// create cron job everyday(1 day) for inactive 60 day deletion
 const days = 1000 * 60 * 60 * 24 * 60; // 60 days in milliseconds
@@ -43,57 +44,68 @@ app.use(express.json());
 
 app.get('/', (_: Request, res: Response) => res.send('Server running...'));
 
-app.get('/users', (_: Request, res: Response) => {
-  db.find({}, (err: Error | null, docs: never[]) => {
-    if (err) console.error(err);
-    res.send(docs);
-  });
-});
-
-app.post('/createUser', async (req: Request, res: Response) => { // make this more secure
-  db.findOne({ _id: req.body.user }, async (err, doc) => {
-    if (err) console.error(err);
-    if (doc === null) {
-      db.insert({
-        user: req.body.user,
-        exp: new Date().getTime() + days,
-        pass: await argon2.hash(req.body.pass),
-        socket: null,
-      }, (error, _) => {
-        if (error) console.error(error);
-        res.sendStatus(200);
+app.post('/createUser', async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        user: String(req.body.user),
+      },
+    });
+    if (!user) {
+      await prisma.user.create({
+        data: {
+          user: req.body.user,
+          exp: new Date().getTime() + days,
+          pass: await argon2.hash(req.body.pass),
+        },
       });
-    } else {
-      res.sendStatus(500);
     }
-  });
+    res.sendStatus(200);
+  } catch (e) {
+    console.log(e);
+    res.sendStatus(500);
+  }
 });
 
 io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
-  socket.on(SOCKET_EVENTS.LOGIN, (data) => { // improve
-    db.findOne({ user: data.user }, async (err, doc) => {
-      if (err) console.error(err);
-      if (await argon2.verify(doc?.pass, data?.pass)) {
-        console.log(doc);
-        if (doc?.socket) {
-          io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: doc.socket });
-        } else {
-          // Set a socket to a user if none exists in the DB for that user
-          // TODO - Fix socket not getting set correctly in update
-          db.update({ user: data.user }, { $set: { socket: socket.id, exp: new Date().getTime() + days } }, {}, (error, _) => {
-            if (error) console.error(error);
-            io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: socket.id });
-          });
-        }
-      } else {
-        socket.disconnect();
-      }
+  // move this to io.use()
+  socket.on(SOCKET_EVENTS.LOGIN, async (data) => {
+    const doc = await prisma.user.findFirst({
+      where: {
+        user: data.user,
+      },
     });
+
+    if (await argon2.verify(doc?.pass || '', data?.pass)) {
+      if (doc?.socket) {
+        io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: doc.socket });
+        socket.disconnect();
+      } else {
+        await prisma.user.updateMany({
+          where: {
+            user: data.user,
+          },
+          data: {
+            socket: socket.id,
+            exp: new Date().getTime() + days,
+          },
+        });
+        io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: socket.id });
+      }
+    } else {
+      socket.disconnect();
+    }
   });
 
-  socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-    db.update({ socket: socket.id }, { $set: { socket: null } }, {}, (err, _) => {
-      if (err) console.error(err);
+  socket.on(SOCKET_EVENTS.DISCONNECT, async () => {
+    await prisma.user.updateMany({
+      where: {
+        socket: socket.id,
+      },
+      data: {
+        socket: null,
+        exp: new Date().getTime() + days,
+      },
     });
   });
 
@@ -101,16 +113,15 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   socket.on('key-exchange', () => {});
 
-  socket.on(SOCKET_EVENTS.SEND_REQUEST, (friend) => {
-    db.findOne({
-      _id: friend,
-    }, (err, doc) => {
-      if (err) console.log(err);
-      if (doc !== null && doc?.socket) {
-        console.log(doc);
-        // io.to(socket).emit('recieveRequest', {  });
-      }
+  socket.on(SOCKET_EVENTS.SEND_REQUEST, async (friend) => {
+    const doc = await prisma.user.findFirst({
+      where: {
+        user: friend,
+      },
     });
+    if (doc !== null && doc?.socket) {
+      console.log(doc);
+    }
   });
 
   // not encrypted, on public chat
@@ -142,7 +153,14 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
   });
 });
 
-const port = 9000;
-server.listen(port, () => console.log(`Server is running on port ${port}`));
+const startServer = async () => {
+  await prisma.$connect();
+  server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+};
 
-export {};
+startServer().catch((e) => {
+  console.error(e);
+  throw e;
+}).finally(async () => {
+  await prisma.$disconnect();
+});

@@ -14,6 +14,7 @@
   },
   "plugins": ["import"],
   "rules": {
+      "linebreak-style": ["error", "windows"],
       // ignore no-console rule
       "no-console": "off",
       // indentation 2 spaces
