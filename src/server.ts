@@ -6,7 +6,7 @@ import argon2 from 'argon2';
 import helmet from 'helmet';
 import http from 'http';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
 import { Server } from 'socket.io';
 import { DateTime } from 'luxon';
 import { SOCKET_EVENTS } from './constants';
@@ -57,7 +57,7 @@ app.post('/createUser', async (req: Request, res: Response) => {
           user: req.body.user,
           exp: new Date().getTime() + days,
           pass: await argon2.hash(req.body.pass),
-        }
+        },
       });
     }
     res.sendStatus(200);
@@ -68,7 +68,6 @@ app.post('/createUser', async (req: Request, res: Response) => {
 });
 
 io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
-
   // move this to io.use()
   socket.on(SOCKET_EVENTS.LOGIN, async (data) => {
     const doc = await prisma.user.findFirst({
@@ -88,8 +87,8 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
           },
           data: {
             socket: socket.id,
-            exp: new Date().getTime() + days
-          }
+            exp: new Date().getTime() + days,
+          },
         });
         io.to(socket.id).emit(SOCKET_EVENTS.UPDATE_SOCKET, { socket: socket.id });
       }
@@ -105,8 +104,8 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
       },
       data: {
         socket: null,
-        exp: new Date().getTime() + days
-      }
+        exp: new Date().getTime() + days,
+      },
     });
   });
 
@@ -157,7 +156,7 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
 const startServer = async () => {
   await prisma.$connect();
   server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-}
+};
 
 startServer().catch((e) => {
   console.error(e);
@@ -165,4 +164,3 @@ startServer().catch((e) => {
 }).finally(async () => {
   await prisma.$disconnect();
 });
-
