@@ -14,7 +14,8 @@
   },
   "plugins": ["import"],
   "rules": {
-      "linebreak-style": ["error", "windows"],
+      // Pipeline and likely server will be on UNIX systems, so enforce LF line endings and not CRLF (windows)
+      "linebreak-style": ["error", "unix"],
       // ignore no-console rule
       "no-console": "off",
       // indentation 2 spaces
